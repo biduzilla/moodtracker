@@ -4,10 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"moodtracker/internal/jsonlog"
 	"moodtracker/internal/models"
 	"moodtracker/utils"
 	e "moodtracker/utils/errors"
+	"strings"
 	"time"
 
 	"github.com/lib/pq"
@@ -70,13 +72,17 @@ func (r *UserRepository) GetByCodAndEmail(cod int, email string) (*models.User, 
 }
 
 func (r *UserRepository) GetByID(id int64) (*models.User, error) {
-	query := `
-	select u.* 
+	cols := strings.Join([]string{
+		selectColumns(models.User{}, "u"),
+	}, ", ")
+	query := fmt.Sprintf(`
+	select 
+	%s 
 	from users u
 	WHERE
 		id = :id
 		AND deleted = false
-	`
+	`, cols)
 
 	params := map[string]any{
 		"id": id,

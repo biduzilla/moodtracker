@@ -23,28 +23,28 @@ type Daylog struct {
 	Description string    `db:"description"`
 	MoodLabel   MoodLabel `db:"mood_label"`
 	User        *User     `db:"-"`
-	Tags        []*Tag    `db:"-"`
 	BaseModel
 }
 
 type Tag struct {
-	ID  uuid.UUID `db:"id"`
-	Tag string    `db:"tag"`
+	ID     uuid.UUID `db:"id"`
+	Tag    string    `db:"tag"`
+	Daylog *Daylog   `db:"-"`
 	BaseModel
 }
 type DaylogDTO struct {
-	ID          uuid.UUID `json:"id"`
-	Date        time.Time `json:"date"`
-	MoodScore   int       `json:"mood_score"`
-	Description string    `json:"description,omitempty"`
-	MoodLabel   string    `json:"mood_label"`
-	User        *UserDTO  `json:"user,omitempty"`
-	Tags        []*TagDTO `json:"tags"`
+	ID          uuid.UUID  `json:"id"`
+	Date        *time.Time `json:"date"`
+	MoodScore   *int       `json:"mood_score"`
+	Description *string    `json:"description,omitempty"`
+	MoodLabel   *string    `json:"mood_label"`
+	User        *UserDTO   `json:"user,omitempty"`
 }
 
 type TagDTO struct {
-	ID  uuid.UUID `json:"id"`
-	Tag string    `json:"tag"`
+	ID     uuid.UUID  `json:"id"`
+	Tag    *string    `json:"tag"`
+	Daylog *DaylogDTO `json:"day_log"`
 }
 
 func (t *Tag) ToDTO() *TagDTO {
@@ -53,8 +53,9 @@ func (t *Tag) ToDTO() *TagDTO {
 	}
 
 	return &TagDTO{
-		ID:  t.ID,
-		Tag: t.Tag,
+		ID:     t.ID,
+		Tag:    &t.Tag,
+		Daylog: t.Daylog.ToDTO(),
 	}
 }
 
@@ -63,64 +64,61 @@ func (dto *TagDTO) ToModel() *Tag {
 		return nil
 	}
 
-	return &Tag{
-		ID:  dto.ID,
-		Tag: dto.Tag,
+	var model Tag
+
+	if dto.Tag != nil {
+		model.Tag = *dto.Tag
 	}
+
+	if dto.Daylog != nil {
+		model.Daylog = dto.Daylog.ToModel()
+	}
+
+	return &model
 }
 
 func (d *Daylog) ToDTO() *DaylogDTO {
-	if d == nil {
-		return nil
-	}
+	dto := DaylogDTO{}
 
-	dto := &DaylogDTO{
-		ID:          d.ID,
-		Date:        d.Date,
-		MoodScore:   d.MoodScore,
-		Description: d.Description,
-		MoodLabel:   d.MoodLabel.String(),
-	}
+	dto.ID = d.ID
+	dto.Date = &d.Date
+	dto.MoodScore = &d.MoodScore
+	dto.Description = &d.Description
+	label := d.MoodLabel.String()
+	dto.MoodLabel = &label
 
 	if d.User != nil {
 		dto.User = d.User.ToDTO()
 	}
 
-	if len(d.Tags) > 0 {
-		dto.Tags = make([]*TagDTO, 0, len(d.Tags))
-		for _, tag := range d.Tags {
-			dto.Tags = append(dto.Tags, tag.ToDTO())
-		}
-	}
-
-	return dto
+	return &dto
 }
 
 func (dto *DaylogDTO) ToModel() *Daylog {
-	if dto == nil {
-		return nil
+	model := Daylog{}
+
+	if dto.Date != nil {
+		model.Date = *dto.Date
 	}
 
-	model := &Daylog{
-		ID:          dto.ID,
-		Date:        dto.Date,
-		MoodScore:   dto.MoodScore,
-		Description: dto.Description,
-		MoodLabel:   parseMoodLabel(dto.MoodLabel),
+	if dto.MoodScore != nil {
+		model.MoodScore = *dto.MoodScore
+	}
+
+	if dto.Description != nil {
+		model.Description = *dto.Description
+	}
+
+	if dto.MoodLabel != nil {
+		label := parseMoodLabel(*dto.MoodLabel)
+		model.MoodLabel = label
 	}
 
 	if dto.User != nil {
 		model.User = dto.User.ToModel()
 	}
 
-	if len(dto.Tags) > 0 {
-		model.Tags = make([]*Tag, 0, len(dto.Tags))
-		for _, tag := range dto.Tags {
-			model.Tags = append(model.Tags, tag.ToModel())
-		}
-	}
-
-	return model
+	return &model
 }
 
 func (m MoodLabel) String() string {
@@ -162,12 +160,8 @@ func (d *Daylog) ValidateDaylog(v *validator.Validator) {
 		v.Check(len(d.Description) <= 1000,
 			"description", "must not be more than 1000 bytes long")
 	}
+}
 
-	if len(d.Tags) > 0 {
-		for _, tag := range d.Tags {
-			v.Check(tag.Tag != "", "tags", "tag name must be provided")
-			v.Check(len(tag.Tag) <= 100,
-				"tags", "tag must not be more than 100 bytes")
-		}
-	}
+func (model *Tag) ValidateTag(v *validator.Validator) {
+	v.Check(model.Tag != "", "tag", "must be provided")
 }
