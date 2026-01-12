@@ -19,7 +19,6 @@ const (
 type Daylog struct {
 	ID          uuid.UUID `db:"id"`
 	Date        time.Time `db:"date"`
-	MoodScore   int       `db:"mood_score"`
 	Description string    `db:"description"`
 	MoodLabel   MoodLabel `db:"mood_label"`
 	User        *User     `db:"-"`
@@ -35,7 +34,6 @@ type Tag struct {
 type DaylogDTO struct {
 	ID          uuid.UUID  `json:"id"`
 	Date        *time.Time `json:"date"`
-	MoodScore   *int       `json:"mood_score"`
 	Description *string    `json:"description,omitempty"`
 	MoodLabel   *string    `json:"mood_label"`
 	User        *UserDTO   `json:"user,omitempty"`
@@ -82,7 +80,6 @@ func (d *Daylog) ToDTO() *DaylogDTO {
 
 	dto.ID = d.ID
 	dto.Date = &d.Date
-	dto.MoodScore = &d.MoodScore
 	dto.Description = &d.Description
 	label := d.MoodLabel.String()
 	dto.MoodLabel = &label
@@ -99,10 +96,6 @@ func (dto *DaylogDTO) ToModel() *Daylog {
 
 	if dto.Date != nil {
 		model.Date = *dto.Date
-	}
-
-	if dto.MoodScore != nil {
-		model.MoodScore = *dto.MoodScore
 	}
 
 	if dto.Description != nil {
@@ -149,10 +142,6 @@ func parseMoodLabel(s string) MoodLabel {
 
 func (d *Daylog) ValidateDaylog(v *validator.Validator) {
 	v.Check(d.Date.IsZero() == false, "date", "must be provided")
-
-	v.Check(d.MoodScore >= 1 && d.MoodScore <= 5,
-		"mood_score", "must be between 1 and 5")
-
 	v.Check(d.MoodLabel >= MOOD_RUIM && d.MoodLabel <= MOOD_BOM,
 		"mood_label", "invalid mood label")
 

@@ -14,7 +14,9 @@ import (
 )
 
 type Repository struct {
-	User UserRepositoryInterface
+	User   UserRepositoryInterface
+	DayLog DaylogRepository
+	Tag    TagRepository
 }
 
 func NewRepository(
@@ -22,7 +24,9 @@ func NewRepository(
 	db *sql.DB,
 ) *Repository {
 	return &Repository{
-		User: NewUserRepository(db, logger),
+		User:   NewUserRepository(db, logger),
+		DayLog: NewDaylogRepository(db, logger),
+		Tag:    NewTagRepository(db, logger),
 	}
 }
 
