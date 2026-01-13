@@ -26,13 +26,17 @@ type DaylogRepository interface {
 		description, tag string,
 		modelLabel *models.MoodLabel,
 		date *time.Time,
-		userID int64,
+		userID uuid.UUID,
 		f filters.Filters,
 	) ([]*models.Daylog, filters.Metadata, error)
-	GetByID(id uuid.UUID, userID int64) (*models.Daylog, error)
-	Insert(tx *sql.Tx, model *models.Daylog, userID int64) error
-	Update(tx *sql.Tx, model *models.Daylog, userID int64) error
-	Delete(tx *sql.Tx, id, userID int64) error
+	GetAllByYear(
+		year int,
+		userID uuid.UUID,
+	) ([]*models.Daylog, error)
+	GetByID(id, userID uuid.UUID) (*models.Daylog, error)
+	Insert(tx *sql.Tx, model *models.Daylog, userID uuid.UUID) error
+	Update(tx *sql.Tx, model *models.Daylog, userID uuid.UUID) error
+	Delete(tx *sql.Tx, id uuid.UUID, userID uuid.UUID) error
 }
 
 func NewDaylogRepository(
@@ -45,11 +49,50 @@ func NewDaylogRepository(
 	}
 }
 
+func (r *daylogRepository) GetAllByYear(
+	year int,
+	userID uuid.UUID,
+) ([]*models.Daylog, error) {
+	cols := strings.Join([]string{
+		selectColumns(models.Daylog{}, "dl"),
+	}, ", ")
+
+	query := fmt.Sprintf(`
+        SELECT
+           	%s
+        FROM day_logs dl
+        WHERE
+    		dl.date >= make_date(:year, 1, 1)
+    		AND dl.date < make_date(:year + 1, 1, 1)
+            AND dl.deleted = false
+			and dl.user_id = :userID 
+    `, cols)
+
+	params := map[string]any{
+		"year":   year,
+		"userID": userID,
+	}
+
+	query, args := namedQuery(query, params)
+	r.logger.PrintInfo(utils.MinifySQL(query), nil)
+
+	return listQuery(
+		r.db,
+		query,
+		args,
+		func() *models.Daylog {
+			return &models.Daylog{
+				User: &models.User{},
+			}
+		},
+	)
+}
+
 func (r *daylogRepository) GetAll(
 	description, tag string,
 	modelLabel *models.MoodLabel,
 	date *time.Time,
-	userID int64,
+	userID uuid.UUID,
 	f filters.Filters,
 ) ([]*models.Daylog, filters.Metadata, error) {
 	cols := strings.Join([]string{
@@ -107,7 +150,7 @@ func (r *daylogRepository) GetAll(
 	)
 }
 
-func (r *daylogRepository) GetByID(id uuid.UUID, userID int64) (*models.Daylog, error) {
+func (r *daylogRepository) GetByID(id, userID uuid.UUID) (*models.Daylog, error) {
 	cols := strings.Join([]string{
 		selectColumns(models.Daylog{}, "dl"),
 		selectColumns(models.User{}, "u"),
@@ -133,7 +176,7 @@ func (r *daylogRepository) GetByID(id uuid.UUID, userID int64) (*models.Daylog, 
 	return getByQuery[models.Daylog](r.db, query, args)
 }
 
-func (r *daylogRepository) Insert(tx *sql.Tx, model *models.Daylog, userID int64) error {
+func (r *daylogRepository) Insert(tx *sql.Tx, model *models.Daylog, userID uuid.UUID) error {
 	query := `
 	INSERT INTO day_logs (
 		date, 
@@ -184,7 +227,7 @@ func (r *daylogRepository) Insert(tx *sql.Tx, model *models.Daylog, userID int64
 	return nil
 }
 
-func (r *daylogRepository) Update(tx *sql.Tx, model *models.Daylog, userID int64) error {
+func (r *daylogRepository) Update(tx *sql.Tx, model *models.Daylog, userID uuid.UUID) error {
 	query := `
 	UPDATE day_logs SET
 		date = :date,
@@ -229,7 +272,7 @@ func (r *daylogRepository) Update(tx *sql.Tx, model *models.Daylog, userID int64
 	return nil
 }
 
-func (r *daylogRepository) Delete(tx *sql.Tx, id, userID int64) error {
+func (r *daylogRepository) Delete(tx *sql.Tx, id uuid.UUID, userID uuid.UUID) error {
 	query := `
 	UPDATE day_logs set
 		deleted = true

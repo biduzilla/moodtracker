@@ -121,6 +121,47 @@ func namedQuery(query string, params map[string]any) (string, []any) {
 	return query, args
 }
 
+func listQuery[T any](db *sql.DB,
+	query string,
+	args []any,
+	factory FactoryFunc[T],
+) ([]*T, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	rows, err := db.QueryContext(ctx, query, args...)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	models := []*T{}
+
+	for rows.Next() {
+
+		model := factory()
+
+		fields, err := collectFields(model)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := rows.Scan(fields...); err != nil {
+			return nil, err
+		}
+
+		models = append(models, model)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return models, nil
+}
+
 func paginatedQuery[T any](
 	db *sql.DB,
 	query string,

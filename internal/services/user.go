@@ -8,6 +8,8 @@ import (
 	"moodtracker/utils"
 	e "moodtracker/utils/errors"
 	"moodtracker/utils/validator"
+
+	"github.com/google/uuid"
 )
 
 type userService struct {
@@ -21,6 +23,7 @@ type UserService interface {
 	Update(user *models.User, v *validator.Validator) error
 	GetUserByCodAndEmail(cod int, email string, v *validator.Validator) (*models.User, error)
 	Save(user *models.User, v *validator.Validator) error
+	Delete(idUser uuid.UUID) error
 }
 
 func NewUserService(
@@ -97,7 +100,7 @@ func (s *userService) Save(user *models.User, v *validator.Validator) error {
 	})
 }
 
-func (s *userService) Delete(idUser int64) error {
+func (s *userService) Delete(idUser uuid.UUID) error {
 	return utils.RunInTx(s.db, func(tx *sql.Tx) error {
 		return s.user.Delete(tx, idUser)
 	})

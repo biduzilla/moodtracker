@@ -4,27 +4,28 @@ import (
 	"errors"
 	"moodtracker/utils/validator"
 
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
 var AnonymousUser = &User{}
 
 type User struct {
-	ID        int64  `db:"id" dto:"ID"`
-	Name      string `db:"name" dto:"Name"`
-	Email     string `db:"email" dto:"Email"`
-	Phone     string `db:"phone" dto:"Phone"`
-	Cod       int    `db:"cod"`
+	ID        uuid.UUID `db:"id" dto:"ID"`
+	Name      string    `db:"name" dto:"Name"`
+	Email     string    `db:"email" dto:"Email"`
+	Phone     string    `db:"phone" dto:"Phone"`
+	Cod       int       `db:"cod"`
 	Password  password
 	Activated bool `db:"activated"`
 	BaseModel
 }
 
 type UserDTO struct {
-	ID    int64  `json:"user_id" dto:"ID"`
-	Name  string `json:"name" dto:"Name"`
-	Email string `json:"email" dto:"Email"`
-	Phone string `json:"phone" dto:"Phone"`
+	ID    uuid.UUID `json:"user_id" dto:"ID"`
+	Name  string    `json:"name" dto:"Name"`
+	Email string    `json:"email" dto:"Email"`
+	Phone string    `json:"phone" dto:"Phone"`
 }
 
 type UserSaveDTO struct {

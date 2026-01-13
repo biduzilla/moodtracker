@@ -7,16 +7,18 @@ import (
 	"moodtracker/internal/models"
 	"moodtracker/internal/repositories"
 	"moodtracker/utils/validator"
+
+	"github.com/google/uuid"
 )
 
 type GenericServiceInterface[
 	T models.ModelInterface[D],
 	D any,
 ] interface {
-	Save(entity *T, userID int64, v *validator.Validator) error
-	FindByID(id, userID int64) (*T, error)
-	Update(entity *T, userID int64, v *validator.Validator) error
-	Delete(id, userID int64) error
+	Save(entity *T, userID uuid.UUID, v *validator.Validator) error
+	FindByID(id, userID uuid.UUID) (*T, error)
+	Update(entity *T, userID uuid.UUID, v *validator.Validator) error
+	Delete(id, userID uuid.UUID) error
 }
 
 type Services struct {

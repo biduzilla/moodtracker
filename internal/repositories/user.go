@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
 
@@ -22,12 +23,12 @@ type UserRepository struct {
 
 type UserRepositoryInterface interface {
 	GetByCodAndEmail(cod int, email string) (*models.User, error)
-	GetByID(id int64) (*models.User, error)
+	GetByID(id uuid.UUID) (*models.User, error)
 	GetByEmail(email string) (*models.User, error)
 	Insert(tx *sql.Tx, user *models.User) error
 	UpdateCodByEmail(tx *sql.Tx, user *models.User) error
 	Update(tx *sql.Tx, user *models.User) error
-	Delete(tx *sql.Tx, idUser int64) error
+	Delete(tx *sql.Tx, idUser uuid.UUID) error
 }
 
 func NewUserRepository(
@@ -71,7 +72,7 @@ func (r *UserRepository) GetByCodAndEmail(cod int, email string) (*models.User, 
 	return getByQuery[models.User](r.db, query, args)
 }
 
-func (r *UserRepository) GetByID(id int64) (*models.User, error) {
+func (r *UserRepository) GetByID(id uuid.UUID) (*models.User, error) {
 	cols := strings.Join([]string{
 		selectColumns(models.User{}, "u"),
 	}, ", ")
@@ -221,10 +222,10 @@ func (r *UserRepository) Update(tx *sql.Tx, user *models.User) error {
 	return nil
 }
 
-func (r *UserRepository) Delete(tx *sql.Tx, idUser int64) error {
+func (r *UserRepository) Delete(tx *sql.Tx, idUser uuid.UUID) error {
 	query := `
-	UPDATE users set
-	deleted = true
+	UPDATE users 
+	set deleted = true
 	where id = $1
 	`
 

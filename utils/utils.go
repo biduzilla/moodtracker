@@ -37,6 +37,16 @@ func ReadIntPathVariable(r *http.Request, key string) (int64, error) {
 	return value, nil
 }
 
+func ReadStringPathVariable(r *http.Request, key string) (string, error) {
+	s := chi.URLParam(r, key)
+
+	if s == "" {
+		return "", fmt.Errorf("missing path parameter: %s", key)
+	}
+
+	return s, nil
+}
+
 func MinifySQL(s string) string {
 	return strings.Join(strings.Fields(s), " ")
 }

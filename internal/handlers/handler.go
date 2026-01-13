@@ -8,6 +8,8 @@ import (
 	"moodtracker/utils"
 	"moodtracker/utils/errors"
 	"net/http"
+
+	"github.com/google/uuid"
 )
 
 type Handler struct {
@@ -31,7 +33,7 @@ func NewHandler(
 	}
 }
 
-func parseID(
+func parseIntID(
 	w http.ResponseWriter,
 	r *http.Request,
 	errRsp errors.ErrorHandlerInterface,
@@ -42,6 +44,27 @@ func parseID(
 		return 0, false
 	}
 	return id, true
+}
+
+func parseUUID(
+	w http.ResponseWriter,
+	r *http.Request,
+	errRsp errors.ErrorHandlerInterface,
+) (*uuid.UUID, bool) {
+
+	id, err := utils.ReadStringPathVariable(r, "id")
+	if err != nil {
+		errRsp.BadRequestResponse(w, r, err)
+		return nil, false
+	}
+
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		errRsp.BadRequestResponse(w, r, err)
+		return nil, false
+	}
+
+	return &uid, true
 }
 
 func respond(
