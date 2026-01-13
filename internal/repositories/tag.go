@@ -24,25 +24,25 @@ type tagRepository struct {
 
 type TagRepository interface {
 	GetAllByDayLogID(
-		dayLogID uuid.UUID,
-		userID int64,
+		dayLogID,
+		userID uuid.UUID,
 		f filters.Filters,
 	) ([]*models.Tag, filters.Metadata, error)
 	Insert(
 		tx *sql.Tx,
 		model *models.Tag,
-		dayLogID uuid.UUID,
-		userID int64,
+		dayLogID,
+		userID uuid.UUID,
 	) error
 	Update(
 		tx *sql.Tx,
 		model *models.Tag,
-		userID int64,
+		userID uuid.UUID,
 	) error
 	Delete(
 		tx *sql.Tx,
-		id uuid.UUID,
-		userID int64,
+		id,
+		userID uuid.UUID,
 	) error
 }
 
@@ -69,8 +69,8 @@ func parseTagConstraintError(err error) error {
 }
 
 func (r *tagRepository) GetAllByDayLogID(
-	dayLogID uuid.UUID,
-	userID int64,
+	dayLogID,
+	userID uuid.UUID,
 	f filters.Filters,
 ) ([]*models.Tag, filters.Metadata, error) {
 	cols := strings.Join([]string{
@@ -123,8 +123,8 @@ func (r *tagRepository) GetAllByDayLogID(
 func (r *tagRepository) Insert(
 	tx *sql.Tx,
 	model *models.Tag,
-	dayLogID uuid.UUID,
-	userID int64,
+	dayLogID,
+	userID uuid.UUID,
 ) error {
 	query := `
 	INSERT INTO tags (
@@ -172,7 +172,7 @@ func (r *tagRepository) Insert(
 func (r *tagRepository) Update(
 	tx *sql.Tx,
 	model *models.Tag,
-	userID int64,
+	userID uuid.UUID,
 ) error {
 	query := `
 	UPDATE tags t
@@ -217,8 +217,8 @@ func (r *tagRepository) Update(
 
 func (r *tagRepository) Delete(
 	tx *sql.Tx,
-	id uuid.UUID,
-	userID int64,
+	id,
+	userID uuid.UUID,
 ) error {
 	query := `
 	UPDATE tags t

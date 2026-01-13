@@ -27,10 +27,21 @@ func NewDaylogService(
 }
 
 type DaylogServices interface {
+	GetAllByYear(
+		year int,
+		userID uuid.UUID,
+	) ([]*models.Daylog, error)
 	Save(model *models.Daylog, userID uuid.UUID, v *validator.Validator) error
 	FindByID(id, userID uuid.UUID) (*models.Daylog, error)
 	Update(model *models.Daylog, userID uuid.UUID, v *validator.Validator) error
 	Delete(id, userID uuid.UUID) error
+}
+
+func (s *daylogServices) GetAllByYear(
+	year int,
+	userID uuid.UUID,
+) ([]*models.Daylog, error) {
+	return s.daylog.GetAllByYear(year, userID)
 }
 
 func (s *daylogServices) Save(model *models.Daylog, userID uuid.UUID, v *validator.Validator) error {

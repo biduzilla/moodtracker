@@ -21,6 +21,35 @@ import (
 
 type Envelope map[string]any
 
+func StringSliceToPtrSlice(s []string) []*string {
+	if s == nil {
+		return nil
+	}
+
+	out := make([]*string, 0, len(s))
+	for _, v := range s {
+		val := v
+		out = append(out, &val)
+	}
+	return out
+}
+
+func PtrStringSliceToSlice(s []*string) []string {
+	if s == nil {
+		return nil
+	}
+
+	out := make([]string, 0, len(s))
+	for _, p := range s {
+		if p == nil {
+			continue
+		}
+
+		out = append(out, *p)
+	}
+	return out
+}
+
 func ReadIntPathVariable(r *http.Request, key string) (int64, error) {
 	s := chi.URLParam(r, key)
 

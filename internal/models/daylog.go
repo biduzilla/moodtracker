@@ -1,6 +1,7 @@
 package models
 
 import (
+	"moodtracker/utils"
 	"moodtracker/utils/validator"
 	"strings"
 	"time"
@@ -22,13 +23,14 @@ type Daylog struct {
 	Description string    `db:"description"`
 	MoodLabel   MoodLabel `db:"mood_label"`
 	User        *User     `db:"-"`
+	Tags        []string  `db:"tags"`
 	BaseModel
 }
 
 type Tag struct {
-	ID     uuid.UUID `db:"id"`
-	Tag    string    `db:"tag"`
-	Daylog *Daylog   `db:"-"`
+	ID   uuid.UUID `db:"id"`
+	Tag  string    `db:"tag"`
+	User *User     `db:"-"`
 	BaseModel
 }
 type DaylogDTO struct {
@@ -37,12 +39,13 @@ type DaylogDTO struct {
 	Description *string    `json:"description,omitempty"`
 	MoodLabel   *string    `json:"mood_label"`
 	User        *UserDTO   `json:"user,omitempty"`
+	Tags        []*string  `json:"tags"`
 }
 
 type TagDTO struct {
-	ID     uuid.UUID  `json:"id"`
-	Tag    *string    `json:"tag"`
-	Daylog *DaylogDTO `json:"day_log"`
+	ID   uuid.UUID `json:"id"`
+	Tag  *string   `json:"tag"`
+	User *UserDTO  `json:"user,omitempty"`
 }
 
 func (t *Tag) ToDTO() *TagDTO {
@@ -51,9 +54,9 @@ func (t *Tag) ToDTO() *TagDTO {
 	}
 
 	return &TagDTO{
-		ID:     t.ID,
-		Tag:    &t.Tag,
-		Daylog: t.Daylog.ToDTO(),
+		ID:   t.ID,
+		Tag:  &t.Tag,
+		User: t.User.ToDTO(),
 	}
 }
 
@@ -68,8 +71,8 @@ func (dto *TagDTO) ToModel() *Tag {
 		model.Tag = *dto.Tag
 	}
 
-	if dto.Daylog != nil {
-		model.Daylog = dto.Daylog.ToModel()
+	if dto.User != nil {
+		model.User = dto.User.ToModel()
 	}
 
 	return &model
@@ -83,6 +86,7 @@ func (d *Daylog) ToDTO() *DaylogDTO {
 	dto.Description = &d.Description
 	label := d.MoodLabel.String()
 	dto.MoodLabel = &label
+	dto.Tags = utils.StringSliceToPtrSlice(d.Tags)
 
 	if d.User != nil {
 		dto.User = d.User.ToDTO()
@@ -109,6 +113,10 @@ func (dto *DaylogDTO) ToModel() *Daylog {
 
 	if dto.User != nil {
 		model.User = dto.User.ToModel()
+	}
+
+	if dto.Tags != nil {
+		model.Tags = utils.PtrStringSliceToSlice(dto.Tags)
 	}
 
 	return &model
