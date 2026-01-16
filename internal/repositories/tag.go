@@ -27,6 +27,7 @@ type TagRepository interface {
 		userID uuid.UUID,
 		f filters.Filters,
 	) ([]*models.Tag, filters.Metadata, error)
+	FindByID(tagID, userID uuid.UUID) (*models.Tag, error)
 	Insert(
 		tx *sql.Tx,
 		model *models.Tag,
@@ -116,6 +117,34 @@ func (r *tagRepository) GetAllByUserID(
 			}
 		},
 	)
+}
+
+func (r *tagRepository) FindByID(tagID, userID uuid.UUID) (*models.Tag, error) {
+	cols := strings.Join([]string{
+		selectColumns(models.Tag{}, "t"),
+		selectColumns(models.User{}, "u"),
+	}, ", ")
+
+	query := fmt.Sprintf(`
+        SELECT
+           	%s
+        FROM tags t
+        LEFT JOIN users u ON u.id = t.use_id
+        WHERE
+			t.user_id = :userID
+			and t.id = :tagID
+            AND t.deleted = false
+    `, cols)
+
+	params := map[string]any{
+		"userID": userID,
+		"tagID":  tagID,
+	}
+
+	query, args := namedQuery(query, params)
+	r.logger.PrintInfo(utils.MinifySQL(query), nil)
+
+	return getByQuery[models.Tag](r.db, query, args)
 }
 
 func (r *tagRepository) GetIDByNameOrCreate(
