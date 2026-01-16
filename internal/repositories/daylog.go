@@ -35,7 +35,7 @@ type DaylogRepository interface {
 	) ([]*models.Daylog, error)
 	GetByID(id, userID uuid.UUID) (*models.Daylog, error)
 	InsertLogsTags(tx *sql.Tx, daylogID, tagID uuid.UUID) error
-	Insert(tx *sql.Tx, model *models.Daylog, userID uuid.UUID) error
+	InsertOrUpdate(tx *sql.Tx, model *models.Daylog, userID uuid.UUID) error
 	Update(tx *sql.Tx, model *models.Daylog, userID uuid.UUID) error
 	Delete(tx *sql.Tx, id uuid.UUID, userID uuid.UUID) error
 	DeleteLogTagByDaylogID(tx *sql.Tx, daylogID uuid.UUID) error
@@ -50,6 +50,17 @@ func NewDaylogRepository(
 		logger: logger,
 	}
 }
+
+/*
+create unique index uniq_day_logs_user_date
+on day_logs (user_id, date)
+where deleted = false;
+
+create unique index uniq_tags_name_user_not_deleted
+on tags (lower(name), user_id)
+where deleted = false;
+
+*/
 
 func (r *daylogRepository) GetAllByYear(
 	year int,
@@ -225,27 +236,43 @@ func (r *daylogRepository) InsertLogsTags(tx *sql.Tx, daylogID, tagID uuid.UUID)
 	return nil
 }
 
-func (r *daylogRepository) Insert(tx *sql.Tx, model *models.Daylog, userID uuid.UUID) error {
+func (r *daylogRepository) InsertOrUpdate(
+	tx *sql.Tx,
+	model *models.Daylog,
+	userID uuid.UUID,
+) error {
+
 	query := `
-	INSERT INTO day_logs (
-		date, 
-		description, 
-		mood_label, 
-		user_id, 
-		created_by,
+	insert into day_logs (
+		date,
+		description,
+		mood_label,
+		user_id,
+		created_by
 	)
-	VALUES (
-		:date, 
-		:description, 
-		:moodLabel, 
-		:userID, 
+	values (
+		:date,
+		:description,
+		:moodLabel,
 		:userID,
-		)
-	RETURNING id, created_at, version
+		:userID
+	)
+	on conflict (user_id, date)
+	do update set
+		description = excluded.description,
+		mood_label = excluded.mood_label,
+		updated_at = now(),
+		version = day_logs.version + 1
+	returning
+		id,
+		created_at,
+		version
 	`
-	start := sql.NullTime{}
-	start.Valid = true
-	start.Time = model.Date
+
+	start := sql.NullTime{
+		Time:  model.Date,
+		Valid: true,
+	}
 
 	params := map[string]any{
 		"date":        start,
@@ -260,20 +287,11 @@ func (r *daylogRepository) Insert(tx *sql.Tx, model *models.Daylog, userID uuid.
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	err := tx.QueryRowContext(ctx, query, args...).Scan(
+	return tx.QueryRowContext(ctx, query, args...).Scan(
 		&model.ID,
 		&model.CreatedAt,
 		&model.Version,
 	)
-
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return e.ErrEditConflict
-		}
-		return err
-	}
-
-	return nil
 }
 
 func (r *daylogRepository) Update(tx *sql.Tx, model *models.Daylog, userID uuid.UUID) error {

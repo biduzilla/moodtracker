@@ -51,7 +51,7 @@ func (s *daylogServices) Save(model *models.Daylog, userID uuid.UUID, v *validat
 			return e.ErrInvalidData
 		}
 
-		err := s.daylog.Insert(tx, model, userID)
+		err := s.daylog.InsertOrUpdate(tx, model, userID)
 		if err != nil {
 			return err
 		}

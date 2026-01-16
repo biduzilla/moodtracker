@@ -48,7 +48,7 @@ func (h *genericHandler[T, D]) FindByID(w http.ResponseWriter, r *http.Request) 
 	}
 
 	user := contexts.ContextGetUser(r)
-	model, err := h.service.FindByID(*id, user.ID)
+	model, err := h.service.FindByID(id, user.ID)
 	if err != nil {
 		h.errRsp.HandlerError(w, r, err, nil)
 		return
@@ -108,7 +108,7 @@ func (h *genericHandler[T, D]) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := contexts.ContextGetUser(r)
-	if err := h.service.Delete(*id, user.ID); err != nil {
+	if err := h.service.Delete(id, user.ID); err != nil {
 		h.errRsp.HandlerError(w, r, err, nil)
 		return
 	}
