@@ -29,7 +29,7 @@ type Daylog struct {
 
 type Tag struct {
 	ID   uuid.UUID `db:"id"`
-	Tag  string    `db:"tag"`
+	Name string    `db:"name"`
 	User *User     `db:"-"`
 	BaseModel
 }
@@ -44,7 +44,7 @@ type DaylogDTO struct {
 
 type TagDTO struct {
 	ID   uuid.UUID `json:"id"`
-	Tag  *string   `json:"tag"`
+	Name *string   `json:"name"`
 	User *UserDTO  `json:"user,omitempty"`
 }
 
@@ -55,7 +55,7 @@ func (t *Tag) ToDTO() *TagDTO {
 
 	return &TagDTO{
 		ID:   t.ID,
-		Tag:  &t.Tag,
+		Name: &t.Name,
 		User: t.User.ToDTO(),
 	}
 }
@@ -67,8 +67,8 @@ func (dto *TagDTO) ToModel() *Tag {
 
 	var model Tag
 
-	if dto.Tag != nil {
-		model.Tag = *dto.Tag
+	if dto.Name != nil {
+		model.Name = *dto.Name
 	}
 
 	if dto.User != nil {
@@ -160,5 +160,5 @@ func (d *Daylog) ValidateDaylog(v *validator.Validator) {
 }
 
 func (model *Tag) ValidateTag(v *validator.Validator) {
-	v.Check(model.Tag != "", "tag", "must be provided")
+	v.Check(model.Name != "", "name", "must be provided")
 }

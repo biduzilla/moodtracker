@@ -34,9 +34,11 @@ type DaylogRepository interface {
 		userID uuid.UUID,
 	) ([]*models.Daylog, error)
 	GetByID(id, userID uuid.UUID) (*models.Daylog, error)
+	InsertLogsTags(tx *sql.Tx, daylogID, tagID uuid.UUID) error
 	Insert(tx *sql.Tx, model *models.Daylog, userID uuid.UUID) error
 	Update(tx *sql.Tx, model *models.Daylog, userID uuid.UUID) error
 	Delete(tx *sql.Tx, id uuid.UUID, userID uuid.UUID) error
+	DeleteLogTagByDaylogID(tx *sql.Tx, daylogID uuid.UUID) error
 }
 
 func NewDaylogRepository(
@@ -59,8 +61,11 @@ func (r *daylogRepository) GetAllByYear(
 
 	query := fmt.Sprintf(`
         SELECT
-           	%s
+           	%s,
+			ARRAY_AGG(t.name) as tags
         FROM day_logs dl
+		LEFT JOIN log_tags lt ON dl.id = lt.log_id
+		LEFT JOIN tags ut ON lt.tag_id = t.id
         WHERE
     		dl.date >= make_date(:year, 1, 1)
     		AND dl.date < make_date(:year + 1, 1, 1)
@@ -158,13 +163,17 @@ func (r *daylogRepository) GetByID(id, userID uuid.UUID) (*models.Daylog, error)
 
 	query := fmt.Sprintf(`
 	select 
-	%s 
+	%s,
+	ARRAY_AGG(t.name) as tags
 	FROM day_logs dl
+	LEFT JOIN log_tags lt ON dl.id = lt.log_id
+	LEFT JOIN tags ut ON lt.tag_id = t.id
 	WHERE
 		dl.id = :id
 		and dl.user_id = :userID
 		AND dl.deleted = false
-	`, cols)
+	GROUP BY %s
+	`, cols, cols)
 
 	params := map[string]any{
 		"id":     id,
@@ -174,6 +183,46 @@ func (r *daylogRepository) GetByID(id, userID uuid.UUID) (*models.Daylog, error)
 	query, args := namedQuery(query, params)
 	r.logger.PrintInfo(utils.MinifySQL(query), nil)
 	return getByQuery[models.Daylog](r.db, query, args)
+}
+
+func (r *daylogRepository) InsertLogsTags(tx *sql.Tx, daylogID, tagID uuid.UUID) error {
+	query := `
+	insert into log_tags (
+		log_id,
+		tag_id
+	)
+	values (
+		:logID,
+		:tagID
+	)
+	`
+
+	params := map[string]any{
+		"logID": daylogID,
+		"tagID": tagID,
+	}
+
+	query, args := namedQuery(query, params)
+	r.logger.PrintInfo(utils.MinifySQL(query), nil)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	result, err := tx.ExecContext(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return e.ErrRecordNotFound
+	}
+
+	return nil
 }
 
 func (r *daylogRepository) Insert(tx *sql.Tx, model *models.Daylog, userID uuid.UUID) error {
@@ -284,6 +333,37 @@ func (r *daylogRepository) Delete(tx *sql.Tx, id uuid.UUID, userID uuid.UUID) er
 	params := map[string]any{
 		"id":     id,
 		"userID": userID,
+	}
+
+	query, args := namedQuery(query, params)
+	r.logger.PrintInfo(utils.MinifySQL(query), nil)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	result, err := tx.ExecContext(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return e.ErrRecordNotFound
+	}
+
+	return nil
+}
+
+func (r *daylogRepository) DeleteLogTagByDaylogID(tx *sql.Tx, daylogID uuid.UUID) error {
+	query := `
+	delete from log_tags
+	where log_id = :id
+	`
+	params := map[string]any{
+		"id": daylogID,
 	}
 
 	query, args := namedQuery(query, params)

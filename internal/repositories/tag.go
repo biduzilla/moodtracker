@@ -23,8 +23,7 @@ type tagRepository struct {
 }
 
 type TagRepository interface {
-	GetAllByDayLogID(
-		dayLogID,
+	GetAllByUserID(
 		userID uuid.UUID,
 		f filters.Filters,
 	) ([]*models.Tag, filters.Metadata, error)
@@ -44,6 +43,7 @@ type TagRepository interface {
 		id,
 		userID uuid.UUID,
 	) error
+	DeleteLogTagByTagID(tx *sql.Tx, tagID uuid.UUID) error
 }
 
 func NewTagRepository(
@@ -68,14 +68,12 @@ func parseTagConstraintError(err error) error {
 	return nil
 }
 
-func (r *tagRepository) GetAllByDayLogID(
-	dayLogID,
+func (r *tagRepository) GetAllByUserID(
 	userID uuid.UUID,
 	f filters.Filters,
 ) ([]*models.Tag, filters.Metadata, error) {
 	cols := strings.Join([]string{
 		selectColumns(models.Tag{}, "t"),
-		selectColumns(models.Daylog{}, "dl"),
 	}, ", ")
 
 	query := fmt.Sprintf(`
@@ -83,11 +81,10 @@ func (r *tagRepository) GetAllByDayLogID(
             count(*) OVER(),
            	%s
         FROM tags t
-        LEFT JOIN day_logs dl ON dl.id = t.day_log_id
+        LEFT JOIN users u ON u.id = t.use_id
         WHERE
-			t.day_log_id = :dayLogID
+			t.user_id = :userID
             AND t.deleted = false
-			and dl.user_id = :userID
         ORDER BY
             t.%s %s,
             t.id ASC
@@ -96,10 +93,9 @@ func (r *tagRepository) GetAllByDayLogID(
     `, cols, f.SortColumn(), f.SortDirection())
 
 	params := map[string]any{
-		"dayLogID": dayLogID,
-		"userID":   userID,
-		"limit":    f.Limit(),
-		"offset":   f.Offset(),
+		"userID": userID,
+		"limit":  f.Limit(),
+		"offset": f.Offset(),
 	}
 
 	query, args := namedQuery(query, params)
@@ -112,9 +108,7 @@ func (r *tagRepository) GetAllByDayLogID(
 		f,
 		func() *models.Tag {
 			return &models.Tag{
-				Daylog: &models.Daylog{
-					User: &models.User{},
-				},
+				User: &models.User{},
 			}
 		},
 	)
@@ -128,23 +122,20 @@ func (r *tagRepository) Insert(
 ) error {
 	query := `
 	INSERT INTO tags (
-		tag, 
-		day_log_id, 
+		name, 
 		user_id, 
 		created_by,
 	)
 	VALUES (
 		:tag, 
-		:dayLogID, 
 		:userID, 
 		:userID,
 		)
 	RETURNING id, created_at, version
 	`
 	params := map[string]any{
-		"tag":      model.Tag,
-		"dayLogID": dayLogID,
-		"userID":   userID,
+		"tag":    model.Name,
+		"userID": userID,
 	}
 
 	query, args := namedQuery(query, params)
@@ -175,25 +166,23 @@ func (r *tagRepository) Update(
 	userID uuid.UUID,
 ) error {
 	query := `
-	UPDATE tags t
+	UPDATE tags 
 	SET
-		tag = :tag,
+		name = :name,
 		updated_at = NOW(),
 		updated_by = :userID,
 		version = version + 1
-	FROM day_logs dl
 	WHERE
-		t.day_log_id = dl.id
-		AND dl.user_id = :userID
-		AND t.id = :id
-		AND t.version = :version
-		AND t.deleted = false
-	RETURNING t.version
+		user_id = :userID
+		AND id = :id
+		AND version = :version
+		AND deleted = false
+	RETURNING version
 	`
 
 	params := map[string]any{
 		"id":      model.ID,
-		"tag":     model.Tag,
+		"name":    model.Name,
 		"userID":  userID,
 		"version": model.Version,
 	}
@@ -221,17 +210,15 @@ func (r *tagRepository) Delete(
 	userID uuid.UUID,
 ) error {
 	query := `
-	UPDATE tags t
+	UPDATE tags 
 	SET
 		deleted = true,
 		updated_at = NOW(),
 		updated_by = :userID
-	FROM day_logs dl
 	WHERE
-		t.day_log_id = dl.id
-		AND dl.user_id = :userID
-		AND t.id = :id
-		AND t.deleted = false
+		user_id = :userID
+		AND id = :id
+		AND deleted = false
 	`
 
 	params := map[string]any{
@@ -242,6 +229,37 @@ func (r *tagRepository) Delete(
 	query, args := namedQuery(query, params)
 	r.logger.PrintInfo(utils.MinifySQL(query), nil)
 
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	result, err := tx.ExecContext(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return e.ErrRecordNotFound
+	}
+
+	return nil
+}
+
+func (r *tagRepository) DeleteLogTagByTagID(tx *sql.Tx, tagID uuid.UUID) error {
+	query := `
+	delete from log_tags
+	where tag_id = :id
+	`
+	params := map[string]any{
+		"id": tagID,
+	}
+
+	query, args := namedQuery(query, params)
+	r.logger.PrintInfo(utils.MinifySQL(query), nil)
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 

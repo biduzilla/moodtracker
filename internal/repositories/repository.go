@@ -11,6 +11,8 @@ import (
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 type Repository struct {
@@ -67,6 +69,22 @@ func collectFields(dest any) ([]any, error) {
 		tag := fieldType.Tag.Get("db")
 
 		if tag != "" && tag != "-" {
+
+			if fieldVal.Kind() == reflect.Slice {
+				elemKind := fieldVal.Type().Elem().Kind()
+
+				switch elemKind {
+				case reflect.String, reflect.Int, reflect.Int64:
+					fields = append(fields, pq.Array(fieldVal.Addr().Interface()))
+					continue
+				default:
+					return nil, fmt.Errorf(
+						"unsupported slice type for db scan: %s",
+						fieldVal.Type(),
+					)
+				}
+			}
+
 			fields = append(fields, fieldVal.Addr().Interface())
 			continue
 		}
