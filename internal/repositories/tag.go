@@ -30,7 +30,6 @@ type TagRepository interface {
 	Insert(
 		tx *sql.Tx,
 		model *models.Tag,
-		dayLogID,
 		userID uuid.UUID,
 	) error
 	Update(
@@ -44,6 +43,11 @@ type TagRepository interface {
 		userID uuid.UUID,
 	) error
 	DeleteLogTagByTagID(tx *sql.Tx, tagID uuid.UUID) error
+	GetIDByNameOrCreate(
+		tx *sql.Tx,
+		name string,
+		userID uuid.UUID,
+	) (uuid.UUID, error)
 }
 
 func NewTagRepository(
@@ -59,7 +63,7 @@ func NewTagRepository(
 func parseTagConstraintError(err error) error {
 	if pqErr, ok := err.(*pq.Error); ok {
 		switch pqErr.Constraint {
-		case "tag_description_key":
+		case "uniq_tags_name_user":
 			return e.ValidationAlreadyExists("tag")
 		}
 		return err
@@ -114,10 +118,51 @@ func (r *tagRepository) GetAllByUserID(
 	)
 }
 
+func (r *tagRepository) GetIDByNameOrCreate(
+	tx *sql.Tx,
+	name string,
+	userID uuid.UUID,
+) (uuid.UUID, error) {
+
+	query := `
+	insert into tags(
+		name,
+		user_id,
+		created_by
+	)
+	values (
+		:name,
+		:userId,
+		:user:Id
+	)
+	on conflict (lower(name), user_id)
+	do update set name = excluded.name
+	returning id
+	`
+	params := map[string]any{
+		"name":   name,
+		"userID": userID,
+	}
+
+	query, args := namedQuery(query, params)
+	r.logger.PrintInfo(utils.MinifySQL(query), nil)
+
+	var id uuid.UUID
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err := tx.QueryRowContext(ctx, query, args).Scan(&id)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	return id, nil
+}
+
 func (r *tagRepository) Insert(
 	tx *sql.Tx,
 	model *models.Tag,
-	dayLogID,
 	userID uuid.UUID,
 ) error {
 	query := `

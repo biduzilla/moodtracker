@@ -35,4 +35,9 @@ type TagService interface {
 	FindByID(id, userID uuid.UUID) (*models.Tag, error)
 	Update(model *models.Tag, userID uuid.UUID, v *validator.Validator) error
 	Delete(id, userID uuid.UUID) error
+	GetIDByNameOrCreate(
+		v *validator.Validator,
+		name string,
+		userID uuid.UUID,
+	) (uuid.UUID, error)
 }

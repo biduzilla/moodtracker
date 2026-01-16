@@ -50,21 +50,21 @@ func parseUUID(
 	w http.ResponseWriter,
 	r *http.Request,
 	errRsp errors.ErrorHandlerInterface,
-) (*uuid.UUID, bool) {
+) (uuid.UUID, bool) {
 
 	id, err := utils.ReadStringPathVariable(r, "id")
 	if err != nil {
 		errRsp.BadRequestResponse(w, r, err)
-		return nil, false
+		return uuid.Nil, false
 	}
 
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		errRsp.BadRequestResponse(w, r, err)
-		return nil, false
+		return uuid.Nil, false
 	}
 
-	return &uid, true
+	return uid, true
 }
 
 func respond(

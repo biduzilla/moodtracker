@@ -13,6 +13,7 @@ import (
 
 type daylogServices struct {
 	daylog repositories.DaylogRepository
+	tag    TagService
 	db     *sql.DB
 }
 
@@ -50,7 +51,29 @@ func (s *daylogServices) Save(model *models.Daylog, userID uuid.UUID, v *validat
 			return e.ErrInvalidData
 		}
 
-		return s.daylog.Insert(tx, model, userID)
+		err := s.daylog.Insert(tx, model, userID)
+		if err != nil {
+			return err
+		}
+
+		tagsIDs := make([]uuid.UUID, 0, len(model.Tags))
+
+		for _, tagName := range model.Tags {
+			tagID, err := s.tag.GetIDByNameOrCreate(v, tagName, userID)
+			if err != nil {
+				return err
+			}
+
+			tagsIDs = append(tagsIDs, tagID)
+		}
+
+		for _, tagID := range tagsIDs {
+			if err := s.daylog.InsertLogsTags(tx, model.ID, tagID); err != nil {
+				return err
+			}
+		}
+
+		return nil
 	})
 }
 
@@ -70,6 +93,11 @@ func (s *daylogServices) Update(model *models.Daylog, userID uuid.UUID, v *valid
 
 func (s *daylogServices) Delete(id, userID uuid.UUID) error {
 	return utils.RunInTx(s.db, func(tx *sql.Tx) error {
-		return s.daylog.Delete(tx, id, userID)
+		err := s.daylog.Delete(tx, id, userID)
+		if err != nil {
+			return err
+		}
+
+		return s.daylog.DeleteLogTagByDaylogID(tx, id)
 	})
 }
