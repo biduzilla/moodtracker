@@ -48,11 +48,7 @@ type TagDTO struct {
 	User *UserDTO  `json:"user,omitempty"`
 }
 
-func (t *Tag) ToDTO() *TagDTO {
-	if t == nil {
-		return nil
-	}
-
+func (t Tag) ToDTO() *TagDTO {
 	return &TagDTO{
 		ID:   t.ID,
 		Name: &t.Name,
@@ -60,11 +56,7 @@ func (t *Tag) ToDTO() *TagDTO {
 	}
 }
 
-func (dto *TagDTO) ToModel() *Tag {
-	if dto == nil {
-		return nil
-	}
-
+func (dto TagDTO) ToModel() *Tag {
 	var model Tag
 
 	if dto.Name != nil {
@@ -78,7 +70,7 @@ func (dto *TagDTO) ToModel() *Tag {
 	return &model
 }
 
-func (d *Daylog) ToDTO() *DaylogDTO {
+func (d Daylog) ToDTO() *DaylogDTO {
 	dto := DaylogDTO{}
 
 	dto.ID = d.ID
@@ -95,7 +87,7 @@ func (d *Daylog) ToDTO() *DaylogDTO {
 	return &dto
 }
 
-func (dto *DaylogDTO) ToModel() *Daylog {
+func (dto DaylogDTO) ToModel() *Daylog {
 	model := Daylog{}
 
 	if dto.Date != nil {

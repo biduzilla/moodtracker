@@ -102,7 +102,8 @@ func ReadDate(qs url.Values, key string, layout string) *time.Time {
 	return &t
 }
 
-func ReadInt(qs url.Values, key string, defaultValue int, v *validator.Validator) int {
+func ReadInt(r *http.Request, key string, defaultValue int, v *validator.Validator) int {
+	qs := r.URL.Query()
 	s := qs.Get(key)
 
 	if s == "" {
