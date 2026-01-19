@@ -16,6 +16,8 @@ type Handler struct {
 	User    UserHandlerInterface
 	Auth    AuthHandlerInterface
 	Service *services.Services
+	Daylog  DaylogHandler
+	Tag     TagHandler
 }
 
 func NewHandler(
@@ -30,6 +32,8 @@ func NewHandler(
 		Service: s,
 		User:    NewUserHandler(s.User, errRsp),
 		Auth:    NewAuthHandler(s.Auth, errRsp),
+		Daylog:  NewDaylogHandler(s.Daylog, errRsp),
+		Tag:     NewTagHandler(s.Tag, errRsp),
 	}
 }
 

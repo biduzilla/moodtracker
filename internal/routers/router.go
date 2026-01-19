@@ -18,6 +18,8 @@ type Router struct {
 	m       middleware.MiddlewareInterface
 	user    UserRoutesInterface
 	auth    AuthRoutesInterface
+	tag     TagRouter
+	daylog  DaylogRouter
 }
 
 func NewRouter(
@@ -38,6 +40,8 @@ func NewRouter(
 		m:       m,
 		user:    NewUserRouter(h.User),
 		auth:    NewAuthRouter(h.Auth),
+		tag:     NewTagRouter(h.Tag, m),
+		daylog:  NewDaylogRouter(h.Daylog, m),
 	}
 }
 
@@ -61,6 +65,8 @@ func (router *Router) RegisterRoutes() *chi.Mux {
 		r.Mount("/debug/vars", expvar.Handler())
 		router.user.UserRoutes(r)
 		router.auth.AuthRoutes(r)
+		router.daylog.DaylogRoutes(r)
+		router.tag.TagRoutes(r)
 	})
 
 	return r
