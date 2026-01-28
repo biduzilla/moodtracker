@@ -23,7 +23,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: bookwise_api
+    container_name: moodtracker_api
     env_file: .env
     environment:
       DB_DSN: ${DB_DSN}

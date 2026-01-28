@@ -19,12 +19,12 @@ FROM alpine:3.18
 
 WORKDIR /root/
 
-COPY --from=builder /app/bin/api ./bookwise
+COPY --from=builder /app/bin/api ./moodtracker
 COPY --from=builder /app/bin/migrate ./migrate
 
 COPY --from=builder /app/migrations/*.sql ./migrations/
 
-RUN chmod +x /root/bookwise /root/migrate \
+RUN chmod +x /root/moodtracker /root/migrate \
     && apk --no-cache add tzdata
 
 ENV SERVER_PORT=4000 \
