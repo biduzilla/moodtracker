@@ -74,19 +74,19 @@ func collectFields(dest any) ([]any, error) {
 				elemKind := fieldVal.Type().Elem().Kind()
 
 				switch elemKind {
+				case reflect.Uint8:
+					fields = append(fields, fieldVal.Addr().Interface())
+					continue
 				case reflect.String, reflect.Int, reflect.Int64:
 					fields = append(fields, pq.Array(fieldVal.Addr().Interface()))
 					continue
 				default:
-					return nil, fmt.Errorf(
-						"unsupported slice type for db scan: %s",
-						fieldVal.Type(),
-					)
+					return nil, e.ErrUnsupportedTypeScanModel
 				}
+			} else {
+				fields = append(fields, fieldVal.Addr().Interface())
+				continue
 			}
-
-			fields = append(fields, fieldVal.Addr().Interface())
-			continue
 		}
 
 		if fieldType.Anonymous && fieldVal.Kind() == reflect.Struct {

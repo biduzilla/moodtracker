@@ -82,5 +82,6 @@ func respond(
 	err := utils.WriteJSON(w, status, data, headers)
 	if err != nil {
 		errRsp.ServerErrorResponse(w, r, err)
+		return
 	}
 }

@@ -16,8 +16,8 @@ type User struct {
 	Email     string    `db:"email" dto:"Email"`
 	Phone     string    `db:"phone" dto:"Phone"`
 	Cod       int       `db:"cod"`
-	Password  password
-	Activated bool `db:"activated"`
+	Password  password  `db:"-"`
+	Activated bool      `db:"activated"`
 	BaseModel
 }
 

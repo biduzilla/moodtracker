@@ -30,4 +30,4 @@ RUN chmod +x /root/moodtracker /root/migrate \
 ENV SERVER_PORT=4000 \
     MIGRATE_PATH=/root/migrations
 
-ENTRYPOINT ["/root/bookwise"]
+ENTRYPOINT ["/root/moodtracker"]
