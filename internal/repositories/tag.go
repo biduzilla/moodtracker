@@ -162,15 +162,16 @@ func (r *tagRepository) GetIDByNameOrCreate(
 	values (
 		:name,
 		:userId,
-		:user:Id
+		:userId
 	)
-	on conflict (lower(name), user_id)
+	on conflict (lower(name), user_id) 
+		WHERE deleted = false
 	do update set name = excluded.name
 	returning id
 	`
 	params := map[string]any{
 		"name":   name,
-		"userID": userID,
+		"userId": userID,
 	}
 
 	query, args := namedQuery(query, params)
@@ -181,7 +182,7 @@ func (r *tagRepository) GetIDByNameOrCreate(
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	err := tx.QueryRowContext(ctx, query, args).Scan(&id)
+	err := tx.QueryRowContext(ctx, query, args...).Scan(&id)
 	if err != nil {
 		return uuid.Nil, err
 	}

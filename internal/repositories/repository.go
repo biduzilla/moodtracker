@@ -272,11 +272,11 @@ func collectColumns(t reflect.Type, alias string, cols *[]string) {
 
 		tag := field.Tag.Get("db")
 
-		if tag == "-" {
-			continue
-		}
+		// if tag == "-" {
+		// 	continue
+		// }
 
-		if tag != "" {
+		if tag != "" && tag != "-" {
 			*cols = append(*cols, fmt.Sprintf("%s.%s", alias, tag))
 		}
 
@@ -285,12 +285,12 @@ func collectColumns(t reflect.Type, alias string, cols *[]string) {
 			continue
 		}
 
-		if field.Type.Kind() == reflect.Pointer &&
-			field.Type.Elem().Kind() == reflect.Struct {
+		// if field.Type.Kind() == reflect.Pointer &&
+		// 	field.Type.Elem().Kind() == reflect.Struct {
 
-			collectColumns(field.Type.Elem(), alias, cols)
-			continue
-		}
+		// 	collectColumns(field.Type.Elem(), alias, cols)
+		// 	continue
+		// }
 
 		if field.Type.Kind() == reflect.Struct {
 			collectColumns(field.Type, alias, cols)

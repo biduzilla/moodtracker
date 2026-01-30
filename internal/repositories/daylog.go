@@ -172,18 +172,24 @@ func (r *daylogRepository) GetByID(id, userID uuid.UUID) (*models.Daylog, error)
 		selectColumns(models.User{}, "u"),
 	}, ", ")
 
+	cols = strings.Replace(cols, "dl.tags,", "", 1)
+
 	query := fmt.Sprintf(`
 	select 
 	%s,
 	ARRAY_AGG(t.name) as tags
 	FROM day_logs dl
+	LEFT JOIN users u 
+		on dl.user_id = u.id
 	LEFT JOIN log_tags lt ON dl.id = lt.log_id
-	LEFT JOIN tags ut ON lt.tag_id = t.id
+	LEFT JOIN tags t ON lt.tag_id = t.id
 	WHERE
 		dl.id = :id
 		and dl.user_id = :userID
 		AND dl.deleted = false
-	GROUP BY %s
+		and u.deleted = false
+	GROUP BY 
+		%s
 	`, cols, cols)
 
 	params := map[string]any{
@@ -195,6 +201,23 @@ func (r *daylogRepository) GetByID(id, userID uuid.UUID) (*models.Daylog, error)
 	r.logger.PrintInfo(utils.MinifySQL(query), nil)
 	return getByQuery[models.Daylog](r.db, query, args)
 }
+
+// func (r *daylogRepository) GetByID(id, userID uuid.UUID) (*models.Daylog, error) {
+// 	query := `
+// 	SELECT *
+// 	FROM day_logs_with_tags
+// 	WHERE id = :id AND user_id = :userID
+// 	`
+
+// 	params := map[string]any{
+// 		"id":     id,
+// 		"userID": userID,
+// 	}
+
+// 	query, args := namedQuery(query, params)
+
+// 	return getByQuery[models.Daylog](r.db, query, args)
+// }
 
 func (r *daylogRepository) InsertLogsTags(tx *sql.Tx, daylogID, tagID uuid.UUID) error {
 	query := `
@@ -257,7 +280,7 @@ func (r *daylogRepository) InsertOrUpdate(
 		:userID,
 		:userID
 	)
-	on conflict (user_id, date)
+	on conflict (user_id, date) WHERE deleted = false
 	do update set
 		description = excluded.description,
 		mood_label = excluded.mood_label,

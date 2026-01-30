@@ -50,6 +50,7 @@ var (
 )
 
 func (e *errorHandler) HandlerError(w http.ResponseWriter, r *http.Request, err error, v *validator.Validator) {
+
 	switch {
 	case errors.Is(err, ErrInvalidData):
 		e.FailedValidationResponse(w, r, v.Errors)
@@ -66,8 +67,11 @@ func (e *errorHandler) HandlerError(w http.ResponseWriter, r *http.Request, err 
 	case errors.Is(err, ErrInvalidRole):
 		e.InvalidRoleResponse(w, r)
 
-	case len(strings.Split(err.Error(), "-")) > 0:
-		parts := strings.Split(err.Error(), "-")
+	case errors.Is(err, ErrInvalidCredentials):
+		e.InvalidCredentialsResponse(w, r)
+
+	case len(strings.Split(err.Error(), "->")) > 1:
+		parts := strings.Split(err.Error(), "->")
 		for i := 0; i+1 < len(parts); i += 2 {
 			e.FailedValidationResponse(w, r, map[string]string{
 				parts[i]: parts[i+1],
@@ -80,7 +84,7 @@ func (e *errorHandler) HandlerError(w http.ResponseWriter, r *http.Request, err 
 }
 
 func ValidationAlreadyExists(field string) error {
-	return fmt.Errorf("%s - a register with this %s address already exists", field, field)
+	return fmt.Errorf("%s -> a register with this %s address already exists", field, field)
 }
 
 func (e *errorHandler) NotPermittedResponse(w http.ResponseWriter, r *http.Request) {

@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS users (
     version integer NOT NULL DEFAULT 1,
     deleted bool NOT NULL DEFAULT false,
     created_at timestamp(0) with time zone NOT NULL DEFAULT NOW(),
-    created_by BIGINT, 
+    created_by UUID, 
     updated_at timestamp(0) with time zone,
     updated_by BIGINT
 );

@@ -31,11 +31,11 @@ type Services struct {
 func NewServices(logger jsonlog.Logger, db *sql.DB, config config.Config) *Services {
 	r := repositories.NewRepository(logger, db)
 	userService := NewUserService(r.User, db)
-
+	tagService := NewTagService(r.Tag, db)
 	return &Services{
 		User:   userService,
 		Auth:   NewAuthService(userService, config),
-		Daylog: NewDaylogService(r.DayLog, db),
-		Tag:    NewTagService(r.Tag, db),
+		Daylog: NewDaylogService(r.DayLog, db, tagService),
+		Tag:    tagService,
 	}
 }

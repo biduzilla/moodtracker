@@ -18,20 +18,20 @@ const (
 )
 
 type Daylog struct {
+	BaseModel
 	ID          uuid.UUID `db:"id"`
 	Date        time.Time `db:"date"`
 	Description string    `db:"description"`
 	MoodLabel   MoodLabel `db:"mood_label"`
 	User        *User     `db:"-"`
 	Tags        []string  `db:"tags"`
-	BaseModel
 }
 
 type Tag struct {
+	BaseModel
 	ID   uuid.UUID `db:"id"`
 	Name string    `db:"name"`
 	User *User     `db:"-"`
-	BaseModel
 }
 type DaylogDTO struct {
 	ID          uuid.UUID  `json:"id"`
@@ -128,7 +128,8 @@ func (m MoodLabel) String() string {
 }
 
 func parseMoodLabel(s string) MoodLabel {
-	switch strings.ToLower(s) {
+	s = strings.TrimSpace(strings.ToUpper(s))
+	switch s {
 	case "RUIM":
 		return MOOD_RUIM
 	case "MEDIO":

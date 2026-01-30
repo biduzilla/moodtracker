@@ -2,6 +2,7 @@ package services
 
 import (
 	"database/sql"
+	"fmt"
 	"moodtracker/internal/models"
 	"moodtracker/internal/repositories"
 	"moodtracker/utils"
@@ -20,10 +21,12 @@ type daylogServices struct {
 func NewDaylogService(
 	daylog repositories.DaylogRepository,
 	db *sql.DB,
+	tag TagService,
 ) *daylogServices {
 	return &daylogServices{
 		daylog: daylog,
 		db:     db,
+		tag:    tag,
 	}
 }
 
@@ -56,14 +59,18 @@ func (s *daylogServices) Save(model *models.Daylog, userID uuid.UUID, v *validat
 			return err
 		}
 
+		fmt.Printf("DEBUG: After InsertOrUpdate, ID: %v\n", model.ID)
+		fmt.Printf("DEBUG: Tags count: %d\n", len(model.Tags))
+
 		tagsIDs := make([]uuid.UUID, 0, len(model.Tags))
 
 		for _, tagName := range model.Tags {
+			fmt.Printf("DEBUG: Processing tag: %s\n", tagName)
 			tagID, err := s.tag.GetIDByNameOrCreate(v, tagName, userID)
 			if err != nil {
 				return err
 			}
-
+			fmt.Printf("DEBUG: Got tag ID: %v\n", tagID)
 			tagsIDs = append(tagsIDs, tagID)
 		}
 

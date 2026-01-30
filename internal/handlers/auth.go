@@ -38,6 +38,7 @@ func (h *AuthHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	v := validator.New()
 	token, err := h.auth.Login(v, input.Email, input.Password)
+
 	if err != nil {
 		h.errorHandler.HandlerError(w, r, err, v)
 		return
