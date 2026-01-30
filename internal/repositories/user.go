@@ -95,13 +95,19 @@ func (r *UserRepository) GetByID(id uuid.UUID) (*models.User, error) {
 }
 
 func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
-	query := `
-	select u.* 
+	cols := strings.Join([]string{
+		selectColumns(models.User{}, "u"),
+	}, ", ")
+
+	query := fmt.Sprintf(`
+	select 
+		%s
 	from users u
 	WHERE
 		email = :email
 		AND deleted = false
-	`
+	`, cols)
+
 	params := map[string]any{
 		"email": email,
 	}

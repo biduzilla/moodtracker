@@ -68,25 +68,33 @@ func (r *daylogRepository) GetAllByYear(
 ) ([]*models.Daylog, error) {
 	cols := strings.Join([]string{
 		selectColumns(models.Daylog{}, "dl"),
+		selectColumns(models.User{}, "u"),
 	}, ", ")
+
+	cols = strings.Replace(cols, "dl.tags,", "", 1)
 
 	query := fmt.Sprintf(`
         SELECT
            	%s,
 			ARRAY_AGG(t.name) as tags
         FROM day_logs dl
+			LEFT JOIN users u 
+		on dl.user_id = u.id
 		LEFT JOIN log_tags lt ON dl.id = lt.log_id
-		LEFT JOIN tags ut ON lt.tag_id = t.id
+		LEFT JOIN tags t ON lt.tag_id = t.id
         WHERE
-    		dl.date >= make_date(:year, 1, 1)
-    		AND dl.date < make_date(:year + 1, 1, 1)
-            AND dl.deleted = false
-			and dl.user_id = :userID 
-    `, cols)
+    		dl.date >= make_date(:yearStart, 1, 1)
+    		AND dl.date < make_date(:yearEnd, 1, 1)
+    		AND dl.deleted = false
+    		AND dl.user_id = :userID
+		GROUP BY 
+			%s
+    `, cols, cols)
 
 	params := map[string]any{
-		"year":   year,
-		"userID": userID,
+		"yearStart": year,
+		"yearEnd":   year + 1,
+		"userID":    userID,
 	}
 
 	query, args := namedQuery(query, params)
@@ -116,12 +124,18 @@ func (r *daylogRepository) GetAll(
 		selectColumns(models.User{}, "u"),
 	}, ", ")
 
+	cols = strings.Replace(cols, "dl.tags,", "", 1)
+
 	query := fmt.Sprintf(`
         SELECT
             count(*) OVER(),
-           	%s
+           	%s,
+			ARRAY_AGG(t.name) as tags
         FROM day_logs dl
-		left join tags t on t.day_log_id = dl.id
+		LEFT JOIN users u 
+		on dl.user_id = u.id
+		LEFT JOIN log_tags lt ON dl.id = lt.log_id
+		LEFT JOIN tags t ON lt.tag_id = t.id
         WHERE
             (to_tsvector('simple', dl.description) @@ plainto_tsquery('simple', :description) OR :description = '')
 			and (:modelLabel is nil or dl.model_label = :modelLabel)
@@ -133,7 +147,13 @@ func (r *daylogRepository) GetAll(
             dl.id ASC
         LIMIT :limit
         OFFSET :offset
-    `, cols, f.SortColumn(), f.SortDirection())
+		GROUP BY 
+			%s
+    `, cols,
+		f.SortColumn(),
+		f.SortDirection(),
+		cols,
+	)
 
 	start := sql.NullTime{}
 	if date != nil {
@@ -172,7 +192,7 @@ func (r *daylogRepository) GetByID(id, userID uuid.UUID) (*models.Daylog, error)
 		selectColumns(models.User{}, "u"),
 	}, ", ")
 
-	cols = strings.Replace(cols, "dl.tags,", "", 1)
+	cols = strings.Replace(cols, "dl.tags", "", 1)
 
 	query := fmt.Sprintf(`
 	select 
@@ -201,23 +221,6 @@ func (r *daylogRepository) GetByID(id, userID uuid.UUID) (*models.Daylog, error)
 	r.logger.PrintInfo(utils.MinifySQL(query), nil)
 	return getByQuery[models.Daylog](r.db, query, args)
 }
-
-// func (r *daylogRepository) GetByID(id, userID uuid.UUID) (*models.Daylog, error) {
-// 	query := `
-// 	SELECT *
-// 	FROM day_logs_with_tags
-// 	WHERE id = :id AND user_id = :userID
-// 	`
-
-// 	params := map[string]any{
-// 		"id":     id,
-// 		"userID": userID,
-// 	}
-
-// 	query, args := namedQuery(query, params)
-
-// 	return getByQuery[models.Daylog](r.db, query, args)
-// }
 
 func (r *daylogRepository) InsertLogsTags(tx *sql.Tx, daylogID, tagID uuid.UUID) error {
 	query := `

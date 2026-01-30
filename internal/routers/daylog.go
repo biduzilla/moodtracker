@@ -32,7 +32,7 @@ func (r *daylogRouter) DaylogRoutes(router chi.Router) {
 		router.Use(r.m.RequireActivatedUser)
 
 		router.Get("/{id}", r.daylog.FindByID)
-		router.Get("/year/{year}", r.daylog.GetAllByYear)
+		router.Get("/year", r.daylog.GetAllByYear)
 		router.Post("/", r.daylog.Save)
 		router.Put("/", r.daylog.Update)
 		router.Delete("/{id}", r.daylog.Delete)
