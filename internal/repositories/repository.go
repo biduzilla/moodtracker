@@ -19,6 +19,7 @@ type Repository struct {
 	User   UserRepositoryInterface
 	DayLog DaylogRepository
 	Tag    TagRepository
+	Report ReportRepository
 }
 
 func NewRepository(
@@ -29,6 +30,7 @@ func NewRepository(
 		User:   NewUserRepository(db, logger),
 		DayLog: NewDaylogRepository(db, logger),
 		Tag:    NewTagRepository(db, logger),
+		Report: NewReportRepository(db, logger),
 	}
 }
 

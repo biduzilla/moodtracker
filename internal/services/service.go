@@ -26,6 +26,7 @@ type Services struct {
 	Auth   AuthServiceInterface
 	Daylog DaylogServices
 	Tag    TagService
+	Report ReportService
 }
 
 func NewServices(logger jsonlog.Logger, db *sql.DB, config config.Config) *Services {
@@ -37,5 +38,6 @@ func NewServices(logger jsonlog.Logger, db *sql.DB, config config.Config) *Servi
 		Auth:   NewAuthService(userService, config),
 		Daylog: NewDaylogService(r.DayLog, db, tagService),
 		Tag:    tagService,
+		Report: NewReportService(r.Report),
 	}
 }

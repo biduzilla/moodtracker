@@ -15,6 +15,34 @@ type reportRepository struct {
 	logger jsonlog.Logger
 }
 
+type ReportRepository interface {
+	GetMonthlyReport(
+		year int,
+		month int,
+		userID uuid.UUID,
+	) (*models.MonthlyReport, error)
+
+	GetTagReport(
+		tag string,
+		userID uuid.UUID,
+	) (*models.TagReport, error)
+
+	GetMoodReport(
+		moodLabel models.MoodLabel,
+		userID uuid.UUID,
+	) (*models.MoodReport, error)
+}
+
+func NewReportRepository(
+	db *sql.DB,
+	logger jsonlog.Logger,
+) *reportRepository {
+	return &reportRepository{
+		db:     db,
+		logger: logger,
+	}
+}
+
 type monthlyMoodRow struct {
 	Year       int
 	Month      int

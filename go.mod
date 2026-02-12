@@ -1,6 +1,6 @@
 module moodtracker
 
-go 1.25.2
+go 1.26.0
 
 require github.com/jackc/pgx/v5 v5.8.0
 
