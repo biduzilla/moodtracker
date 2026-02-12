@@ -18,6 +18,7 @@ type Handler struct {
 	Service *services.Services
 	Daylog  DaylogHandler
 	Tag     TagHandler
+	Report  ReportHandler
 }
 
 func NewHandler(
@@ -34,6 +35,7 @@ func NewHandler(
 		Auth:    NewAuthHandler(s.Auth, errRsp),
 		Daylog:  NewDaylogHandler(s.Daylog, errRsp),
 		Tag:     NewTagHandler(s.Tag, errRsp),
+		Report:  NewReportHandler(s.Report, errRsp),
 	}
 }
 

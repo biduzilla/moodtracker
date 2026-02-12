@@ -44,10 +44,9 @@ func (h *tagHandler) GetAllByUserID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	v := validator.New()
-	qs := r.URL.Query()
-	input.Filters.Page = utils.ReadInt(r, "page", 1, v)
-	input.Filters.PageSize = utils.ReadInt(r, "page_size", 20, v)
-	input.Filters.Sort = utils.ReadString(qs, "sort", "id")
+	input.Filters.Page = utils.ReadIntParam(r, "page", 1, v)
+	input.Filters.PageSize = utils.ReadIntParam(r, "page_size", 20, v)
+	input.Filters.Sort = utils.ReadStringParam(r, "sort", "id")
 	input.Filters.SortSafelist = []string{"id", "name", "-id", "-name"}
 
 	user := contexts.ContextGetUser(r)

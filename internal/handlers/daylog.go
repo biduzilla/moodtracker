@@ -38,7 +38,7 @@ type DaylogHandler interface {
 
 func (h *daylogHandlers) GetAllByYear(w http.ResponseWriter, r *http.Request) {
 	v := validator.New()
-	year := utils.ReadInt(r, "year", time.Now().Year(), v)
+	year := utils.ReadIntParam(r, "year", time.Now().Year(), v)
 
 	if !v.Valid() {
 		h.errRsp.HandlerError(w, r, e.ErrInvalidData, v)

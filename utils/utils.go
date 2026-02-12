@@ -80,7 +80,8 @@ func MinifySQL(s string) string {
 	return strings.Join(strings.Fields(s), " ")
 }
 
-func ReadString(qs url.Values, key, defaultValue string) string {
+func ReadStringParam(r *http.Request, key, defaultValue string) string {
+	qs := r.URL.Query()
 	s := qs.Get(key)
 
 	if s == "" {
@@ -102,7 +103,7 @@ func ReadDate(qs url.Values, key string, layout string) *time.Time {
 	return &t
 }
 
-func ReadInt(r *http.Request, key string, defaultValue int, v *validator.Validator) int {
+func ReadIntParam(r *http.Request, key string, defaultValue int, v *validator.Validator) int {
 	qs := r.URL.Query()
 	s := qs.Get(key)
 
