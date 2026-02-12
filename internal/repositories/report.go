@@ -24,17 +24,17 @@ type monthlyMoodRow struct {
 }
 
 type tagMoodRow struct {
-	Tag        string  `db:"tag"`
-	MoodLabel  int     `db:"mood_label"`
-	Count      int     `db:"count"`
-	Percentage float64 `db:"percentage"`
+	Tag        string           `db:"tag"`
+	MoodLabel  models.MoodLabel `db:"mood_label"`
+	Count      int              `db:"count"`
+	Percentage float64          `db:"percentage"`
 }
 
 type moodTagRow struct {
-	MoodLabel  int     `db:"mood_label"`
-	Tag        string  `db:"tag"`
-	Count      int     `db:"count"`
-	Percentage float64 `db:"percentage"`
+	MoodLabel  models.MoodLabel `db:"mood_label"`
+	Tag        string           `db:"tag"`
+	Count      int              `db:"count"`
+	Percentage float64          `db:"percentage"`
 }
 
 type monthlyTagRow struct {
@@ -56,7 +56,7 @@ func (r *reportRepository) GetMonthlyReport(
 		count(*) as count,
 		round(
 			count(*) *100.0 /
-			sum(count(*) over()),
+			sum(count(*)) over(),
 			2
 		) as percentage
 	from day_logs dl
@@ -143,4 +143,125 @@ func (r *reportRepository) GetMonthlyReport(
 	}
 
 	return report, nil
+}
+
+func (r *reportRepository) GetTagReport(
+	tag string,
+	userID uuid.UUID,
+) (*models.TagReport, error) {
+	query := `
+	select
+		t.name as tag,
+		dl,mood_label,
+		count(*)as count,
+		round(
+			count(*) * 100.0 /
+			sum(count(*)) over(),
+			2
+		) as percentage
+	from tags t
+	join log_tags lt on lt.tag_id = t.id
+	join day_logs dl on dl.id = lt.log_id
+	where
+		dl.user_id = :userID
+		and dl.deleted = false
+		and t.deleted = false
+		and lower(t.name) = lower(:tag)
+	group by t.name,dl.mood_label
+	order by dl.mood_label
+	`
+
+	params := map[string]any{
+		"userID": userID,
+		"tag":    tag,
+	}
+
+	query, args := namedQuery(query, params)
+	r.logger.PrintInfo(utils.MinifySQL(query), nil)
+
+	tagMoodFactory := func() *tagMoodRow {
+		return &tagMoodRow{}
+	}
+
+	tagList, err := listQuery(r.db, query, args, tagMoodFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	tagReport := &models.TagReport{
+		Tag:           tag,
+		Distribuition: []models.MoodDistribuition{},
+	}
+
+	for _, row := range tagList {
+		tagReport.Distribuition = append(tagReport.Distribuition,
+			models.MoodDistribuition{
+				MoodLabel:  row.MoodLabel,
+				Count:      row.Count,
+				Percentage: row.Percentage,
+			},
+		)
+	}
+
+	return tagReport, nil
+}
+
+func (r *reportRepository) GetMoodReport(
+	moodLabel models.MoodLabel,
+	userID uuid.UUID,
+) (*models.MoodReport, error) {
+	query := `
+	select
+		t.name as tag,
+		count(*) as count,
+		round(
+			count(*) * 100.0 /
+			sum(count(*)) over (),
+			2
+		)as percentage
+	from day_logs dl
+	join log_tags lt on lt.log_id dl.id
+	join tags on t.id = lt.tag_id
+	where
+		dl.user_id = :userID
+		and dl.deleted = false
+		and t.deleted = false
+		and dl.mood_label = :mood
+	group by t.name
+	order by count desc
+	`
+
+	params := map[string]any{
+		"userID": userID,
+		"mood":   moodLabel,
+	}
+
+	query, args := namedQuery(query, params)
+	r.logger.PrintInfo(utils.MinifySQL(query), nil)
+
+	moodTagFactory := func() *moodTagRow {
+		return &moodTagRow{}
+	}
+
+	list, err := listQuery(r.db, query, args, moodTagFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	moodReport := &models.MoodReport{
+		MoodLabel:     moodLabel,
+		Distribuition: []models.TagDistribuition{},
+	}
+
+	for _, row := range list {
+		moodReport.Distribuition = append(moodReport.Distribuition,
+			models.TagDistribuition{
+				Tag:        row.Tag,
+				Count:      row.Count,
+				Percentage: row.Percentage,
+			},
+		)
+	}
+
+	return moodReport, nil
 }
