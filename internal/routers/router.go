@@ -20,6 +20,7 @@ type Router struct {
 	auth    AuthRoutesInterface
 	tag     TagRouter
 	daylog  DaylogRouter
+	report  ReportRouter
 }
 
 func NewRouter(
@@ -42,6 +43,7 @@ func NewRouter(
 		auth:    NewAuthRouter(h.Auth),
 		tag:     NewTagRouter(h.Tag, m),
 		daylog:  NewDaylogRouter(h.Daylog, m),
+		report:  NewReportRouter(h.Report, m),
 	}
 }
 
@@ -67,6 +69,7 @@ func (router *Router) RegisterRoutes() *chi.Mux {
 		router.auth.AuthRoutes(r)
 		router.daylog.DaylogRoutes(r)
 		router.tag.TagRoutes(r)
+		router.report.ReportRoutes(r)
 	})
 
 	return r
