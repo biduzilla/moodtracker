@@ -86,7 +86,7 @@ func (r *tagRepository) GetAllByUserID(
             count(*) OVER(),
            	%s
         FROM tags t
-        LEFT JOIN users u ON u.id = t.use_id
+        LEFT JOIN users u ON u.id = t.user_id
         WHERE
 			t.user_id = :userID
             AND t.deleted = false

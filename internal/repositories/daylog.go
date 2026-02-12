@@ -138,7 +138,7 @@ func (r *daylogRepository) GetAll(
 		LEFT JOIN tags t ON lt.tag_id = t.id
         WHERE
             (to_tsvector('simple', dl.description) @@ plainto_tsquery('simple', :description) OR :description = '')
-			and (:modelLabel is nil or dl.model_label = :modelLabel)
+			and (:moodLabel is NULL or dl.mood_label = :modelLabel)
 			AND (:date::timestamptz IS NULL OR dl.date >= :date::timestamptz)
             AND dl.deleted = false
 			and dl.user_id = :userID
@@ -324,7 +324,7 @@ func (r *daylogRepository) Update(tx *sql.Tx, model *models.Daylog, userID uuid.
 	query := `
 	UPDATE day_logs SET
 		date = :date,
-		description = :date,
+		description = :description,
 		mood_label = :mood_label,
 		updated_at = NOW(),
 		updated_by = :userID,
