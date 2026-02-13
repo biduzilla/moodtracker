@@ -46,9 +46,9 @@ func NewReportRepository(
 type monthlyMoodRow struct {
 	Year       int
 	Month      int
-	MoodLabel  models.MoodLabel
-	Count      int
-	Percentage float64
+	MoodLabel  models.MoodLabel `db:"mood_label"`
+	Count      int              `db:"count"`
+	Percentage float64          `db:"percentage"`
 }
 
 type tagMoodRow struct {
@@ -89,7 +89,7 @@ func (r *reportRepository) GetMonthlyReport(
 		) as percentage
 	from day_logs dl
 	where
-		dl:user_id = :userID
+		dl.user_id = :userID
 		and dl.deleted = false
 		and dl.date >= :startDate
 		and dl.date < :endDate
@@ -133,7 +133,7 @@ func (r *reportRepository) GetMonthlyReport(
 	`
 
 	tagQuery, tagArgs := namedQuery(tagQuery, params)
-	r.logger.PrintInfo(utils.MinifySQL(moodQuery), nil)
+	r.logger.PrintInfo(utils.MinifySQL(tagQuery), nil)
 
 	tagFactory := func() *monthlyTagRow {
 		return &monthlyTagRow{}
@@ -180,7 +180,7 @@ func (r *reportRepository) GetTagReport(
 	query := `
 	select
 		t.name as tag,
-		dl,mood_label,
+		dl.mood_label,
 		count(*)as count,
 		round(
 			count(*) * 100.0 /
@@ -248,7 +248,7 @@ func (r *reportRepository) GetMoodReport(
 			2
 		)as percentage
 	from day_logs dl
-	join log_tags lt on lt.log_id dl.id
+	join log_tags lt on lt.log_id = dl.id
 	join tags on t.id = lt.tag_id
 	where
 		dl.user_id = :userID

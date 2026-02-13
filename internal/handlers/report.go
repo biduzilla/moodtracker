@@ -47,6 +47,7 @@ func (h *reportHandler) GetMonthlyReport(w http.ResponseWriter, r *http.Request)
 	report, err := h.report.GetMonthlyReport(year, month, user.ID)
 	if err != nil {
 		h.errorHandler.HandlerError(w, r, err, v)
+		return
 	}
 
 	respond(w, r, http.StatusOK, utils.Envelope{utils.GetTypeName(report): report}, nil, h.errorHandler)
@@ -59,6 +60,7 @@ func (h *reportHandler) GetTagReport(w http.ResponseWriter, r *http.Request) {
 	tagReport, err := h.report.GetTagReport(tag, user.ID)
 	if err != nil {
 		h.errorHandler.HandlerError(w, r, err, nil)
+		return
 	}
 
 	respond(w, r, http.StatusOK, utils.Envelope{utils.GetTypeName(tagReport): tagReport}, nil, h.errorHandler)
@@ -79,6 +81,7 @@ func (h *reportHandler) GetMoodReport(w http.ResponseWriter, r *http.Request) {
 	moodReport, err := h.report.GetMoodReport(models.MoodLabel(moodLabel), user.ID)
 	if err != nil {
 		h.errorHandler.HandlerError(w, r, err, nil)
+		return
 	}
 
 	respond(w, r, http.StatusOK, utils.Envelope{utils.GetTypeName(moodReport): moodReport}, nil, h.errorHandler)

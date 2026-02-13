@@ -192,7 +192,7 @@ func (r *daylogRepository) GetByID(id, userID uuid.UUID) (*models.Daylog, error)
 		selectColumns(models.User{}, "u"),
 	}, ", ")
 
-	cols = strings.Replace(cols, "dl.tags", "", 1)
+	cols = strings.Replace(cols, "dl.tags,", "", 1)
 
 	query := fmt.Sprintf(`
 	select 
