@@ -1,65 +1,65 @@
 # 🧠 MoodTracker API
 
-API REST desenvolvida em **Go** para gerenciamento de registros de humor (day logs), tags e geração de relatórios analíticos.
+API REST desenvolvida em **Go** para gerenciamento de registros de humor (Day Logs), Tags e geração de relatórios analíticos.
 
-O sistema permite:
+A aplicação segue arquitetura em camadas com separação clara de responsabilidades:
 
-- Cadastro e ativação de usuários
-- Autenticação com token (JWT)
-- Registro de humor diário
-- Associação de tags aos registros
-- Geração de relatórios por mês, tag e humor
+Router → Middleware → Handler → Service → Repository → Database
 
 ---
 
-## 🚀 Tecnologias
+# 🚀 Tecnologias
 
 - Go
 - PostgreSQL
 - Chi Router (go-chi)
 - JWT Authentication
 - bcrypt
-- expvar (metrics)
-- Clean Architecture (Handlers → Services → Repositories)
+- expvar (métricas)
+- Arquitetura em camadas (Handlers → Services → Repositories)
+- Soft Delete
+- Logging estruturado em JSON
 
 ---
 
-## 📁 Arquitetura
+# 📁 Estrutura do Projeto
 
-O projeto segue separação clara de responsabilidades:
-
+```
 internal/
-├── handlers → Camada HTTP
-├── services → Regras de negócio
-├── repositories → Acesso a dados
-├── middleware → Autenticação, CORS, RateLimit
-├── models → Entidades e DTOs
-└── routers → Definição das rotas
-
-
-Fluxo da requisição:
-Router → Middleware → Handler → Service → Repository → Database
-
+├── handlers
+├── services
+├── repositories
+├── middleware
+├── models
+├── routers
+└── utils
+```
 
 ---
 
-## 🔐 Autenticação
+# 🔐 Autenticação
 
-A API utiliza autenticação baseada em token JWT.
+A API utiliza autenticação baseada em **JWT**.
 
 Fluxo:
 
 1. Criar usuário
 2. Ativar usuário
-3. Fazer login
+3. Realizar login
 4. Receber `authentication_token`
-5. Enviar token no header:
+5. Enviar no header:
 
+```
+Authorization: Bearer {token}
+```
 
 ---
 
-## 🌐 Base URL
+# 🌐 Base URL
 
+```
+http://localhost:4000/v1
+```
 
 ---
 
@@ -67,8 +67,7 @@ Fluxo:
 
 ## Criar usuário
 
-
-### Body
+POST `/v1/users/`
 
 ```json
 {
@@ -77,125 +76,241 @@ Fluxo:
   "phone": "61999999999",
   "password": "12345678"
 }
+```
 
-Ativar usuário
-POST /v1/users/activate
+---
+
+## Ativar usuário
+
+POST `/v1/users/activate`
+
+```json
 {
   "cod": 1234,
   "email": "luiz@email.com"
 }
+```
 
-POST /v1/auth/login
-{
-  "cod": 1234,
-  "email": "luiz@email.com"
-}
+---
 
-POST /v1/auth/login
+# 🔑 Autenticação
+
+## Login
+
+POST `/v1/auth/login`
+
+```json
 {
   "email": "luiz@email.com",
   "password": "12345678"
 }
+```
 
+### Response
+
+```json
 {
   "authentication_token": "jwt_token_here"
 }
+```
 
-📅 Day Logs
+---
+
+# 📅 Day Logs
 
 Requer usuário autenticado e ativado.
 
-Base route:
-/v1/day_logs
+Base route: `/v1/day_logs`
 
-Criar registro
-POST /v1/day_logs
+## Criar
 
+POST `/v1/day_logs/`
+
+```json
 {
   "date": "2026-02-01T00:00:00Z",
   "description": "Dia produtivo",
-  "mood_label": 3,
+  "mood_label": "BOM",
   "tags": ["trabalho", "estudo"]
 }
+```
 
-Atualizar
-PUT /v1/day_logs
+## Buscar por ID
 
-Buscar por ID
-GET /v1/day_logs/{id}
+GET `/v1/day_logs/{id}`
 
-Buscar por ano
-GET /v1/day_logs/year?year=2026
+## Buscar por Ano
 
-Deletar
-DELETE /v1/day_logs/{id}
+GET `/v1/day_logs/year?year=2026`
 
-🏷 Tags
+## Atualizar
 
-Base route:
+PUT `/v1/day_logs/`
 
-/v1/tags
+## Deletar (Soft Delete)
 
-Criar
-POST /v1/tags
+DELETE `/v1/day_logs/{id}`
 
+---
+
+# 🏷 Tags
+
+Requer usuário autenticado e ativado.
+
+Base route: `/v1/tags`
+
+## Criar
+
+POST `/v1/tags/`
+
+```json
 {
   "name": "trabalho"
 }
+```
 
-Listar do usuário (com paginação)
-GET /v1/tags/user/{id}?page=1&page_size=20&sort=name
+## Buscar por ID
 
-Buscar por ID
-GET /v1/tags/{id}
+GET `/v1/tags/{id}`
 
-Atualizar
-PUT /v1/tags
+## Listar por Usuário (com paginação)
 
-Deletar
-DELETE /v1/tags/{id}
+GET `/v1/tags/user/{id}?page=1&page_size=20&sort=name`
 
-📊 Relatórios
+Sort permitidos:
 
-Base route:
+- id
+- name
+- -id
+- -name
 
-/v1/reports
+## Atualizar
 
+PUT `/v1/tags/`
 
-Requer usuário autenticado.
+## Deletar
 
-📅 Relatório Mensal
-GET /v1/reports/monthly?year=2026&month=2
+DELETE `/v1/tags/{id}`
 
+---
+
+# 📊 Relatórios
+
+Requer usuário autenticado e ativado.
+
+Base route: `/v1/reports`
+
+## 📅 Relatório Mensal
+
+GET `/v1/reports/monthly?year=2026&month=2`
 
 Retorna:
 
-Distribuição de humor no mês
+- Distribuição percentual de humor no mês
+- Tags mais utilizadas
 
-Tags mais usadas
+---
 
-🏷 Relatório por Tag
-GET /v1/reports/tag?tag=trabalho
+## 🏷 Relatório por Tag
 
+GET `/v1/reports/tag?tag=trabalho`
 
 Retorna:
 
-Distribuição de humor para uma tag específica
+- Distribuição de humor associada a uma tag específica
+- Percentual calculado via Window Functions (PostgreSQL)
 
-Percentual calculado via window function SQL
+---
 
-😀 Relatório por Humor
-GET /v1/reports/mood?mood_label=1
+## 😀 Relatório por Humor
 
+GET `/v1/reports/mood?mood_label=1`
 
 Valores possíveis:
 
-Label	Valor
-RUIM	1
-MEDIO	2
-BOM	3
+| Label | Valor |
+|-------|-------|
+| RUIM  | 1     |
+| MEDIO | 2     |
+| BOM   | 3     |
 
-📈 Monitoramento
-Métricas
-/v1/debug/vars
+Retorna:
 
+- Distribuição de tags associadas ao humor selecionado
+- Percentual calculado dinamicamente no banco
+
+---
+
+# 📈 Monitoramento
+
+## Métricas
+
+GET `/v1/debug/vars`
+
+Utiliza `expvar` para exposição de métricas internas.
+
+---
+
+# ⚙️ Como Rodar o Projeto
+
+## 1️⃣ Clonar repositório
+
+```
+git clone https://github.com/seu-usuario/moodtracker.git
+cd moodtracker
+```
+
+## 2️⃣ Configurar variáveis de ambiente
+
+Criar `.env`:
+
+```
+SERVER_PORT=4000
+SERVER_TIMEOUT_READ=3s
+SERVER_TIMEOUT_WRITE=5s
+SERVER_TIMEOUT_IDLE=5s
+SERVER_DEBUG=true
+
+POSTGRES_USER=seu_user
+POSTGRES_PASSWORD=sua_senha
+POSTGRES_DB=api_db
+POSTGRES_PORT=5432
+
+DB_DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable
+DB_MAX_OPEN_CONNS=25
+DB_MAX_IDLE_CONNS=25
+DB_MAX_IDLE_TIME=15m
+
+LIMITER_RPS=2
+LIMITER_BURST=4
+LIMITER_ENABLED=true
+
+SECRET_KEY=sua_secret
+```
+
+## 3️⃣ Rodar aplicação
+
+```
+go run ./cmd/api
+```
+
+Servidor disponível em:
+
+```
+http://localhost:4000
+```
+
+---
+
+# 🧪 Melhorias Futuras
+
+- Testes unitários e de integração
+- CI/CD
+- Documentação Swagger/OpenAPI
+- Refresh Token
+
+---
+
+# 👨‍💻 Autor
+
+Desenvolvido por Luiz Henrique.
