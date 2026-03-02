@@ -35,12 +35,15 @@ type MiddlewareInterface interface {
 	Logging(next http.Handler) http.Handler
 }
 
-func New(errHandler errors.ErrorHandlerInterface,
+func New(
+	errHandler errors.ErrorHandlerInterface,
 	cfg config.Config,
+	logger jsonlog.Logger,
 ) *middleware {
 	return &middleware{
 		errHandler: errHandler,
 		cfg:        cfg,
+		logger:     logger,
 	}
 }
 
@@ -103,7 +106,7 @@ func (m *middleware) RateLimit(next http.Handler) http.Handler {
 		mu      sync.Mutex
 		clients = make(map[string]*client)
 	)
-
+	m.logger.PrintInfo(fmt.Sprintf("Rate limit enabled: %v", m.cfg.Limiter.Enabled), nil)
 	go func() {
 		for {
 			time.Sleep(time.Minute)
@@ -175,4 +178,12 @@ func (m *middleware) Logging(next http.Handler) http.Handler {
 			"duration": time.Since(start).String(),
 		})
 	})
+}
+
+func Chain(h http.Handler, middlewares ...func(http.Handler) http.Handler) http.Handler {
+	for _, m := range middlewares {
+		h = m(h)
+	}
+
+	return h
 }

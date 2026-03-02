@@ -4,21 +4,41 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"gateway/internal/middleware"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 )
 
 func (app *application) Server() error {
-	mux := http.NewServeMux()
-	mux.Handle("/mood/", app.moodProxy)
+	moodHandler := http.StripPrefix("/mood", app.moodProxy)
+
+	baseHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasPrefix(r.URL.Path, "/mood/"):
+			moodHandler.ServeHTTP(w, r)
+		case r.URL.Path == "/debug/vars":
+			http.DefaultServeMux.ServeHTTP(w, r)
+		default:
+			app.errHandler.NotFoundResponse(w, r)
+		}
+	})
+
+	handlerWithMiddleware := middleware.Chain(
+		baseHandler,
+		app.middleware.Logging,
+		app.middleware.RateLimit,
+		app.middleware.Metrics,
+		app.middleware.RecoverPanic,
+	)
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf("%s:%d", app.config.Server.Host, app.config.Server.Port),
-		Handler:      mux,
+		Handler:      handlerWithMiddleware,
 		IdleTimeout:  time.Minute,
 		ErrorLog:     log.New(app.Logger, "", 0),
 		ReadTimeout:  10 * time.Second,

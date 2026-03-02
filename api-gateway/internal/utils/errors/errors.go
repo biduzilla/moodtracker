@@ -21,6 +21,7 @@ type ErrorHandlerInterface interface {
 	RateLimitExceededResponse(w http.ResponseWriter, r *http.Request)
 	ServerErrorResponse(w http.ResponseWriter, r *http.Request, err error)
 	ProxyError(w http.ResponseWriter, r *http.Request, err error)
+	NotFoundResponse(w http.ResponseWriter, r *http.Request)
 }
 
 func (e *errorHandler) HandlerError(w http.ResponseWriter, r *http.Request, err error) {
@@ -29,6 +30,11 @@ func (e *errorHandler) HandlerError(w http.ResponseWriter, r *http.Request, err 
 	default:
 		e.ServerErrorResponse(w, r, err)
 	}
+}
+
+func (e *errorHandler) NotFoundResponse(w http.ResponseWriter, r *http.Request) {
+	message := "the requested resource could not be found"
+	e.errorHandler(w, r, http.StatusNotFound, message)
 }
 
 func (e *errorHandler) RateLimitExceededResponse(w http.ResponseWriter, r *http.Request) {

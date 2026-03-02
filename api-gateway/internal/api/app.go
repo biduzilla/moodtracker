@@ -1,26 +1,33 @@
 package api
 
 import (
+	"expvar"
 	"gateway/internal/config"
 	"gateway/internal/jsonlog"
+	"gateway/internal/middleware"
 	"gateway/internal/proxy"
 	"gateway/internal/utils/errors"
 	"net/http"
 	"os"
+	"runtime"
 	"sync"
+	"time"
 )
 
 type application struct {
-	config    config.Config
-	Logger    jsonlog.Logger
-	wg        sync.WaitGroup
-	moodProxy http.Handler
+	config     config.Config
+	Logger     jsonlog.Logger
+	wg         sync.WaitGroup
+	moodProxy  http.Handler
+	middleware middleware.MiddlewareInterface
+	errHandler errors.ErrorHandlerInterface
 }
 
 func NewApp() *application {
 	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
 	errHandler := errors.NewErrorHandler(logger)
 	cfg, err := config.Load()
+	middleware := middleware.New(errHandler, *cfg, logger)
 
 	if err != nil {
 		logger.PrintError(err, nil)
@@ -38,13 +45,22 @@ func NewApp() *application {
 		return nil
 	}
 
+	expvar.Publish("goroutines", expvar.Func(func() any {
+		return runtime.NumGoroutine()
+	}))
+	expvar.Publish("timestamp", expvar.Func(func() any {
+		return time.Now().Unix()
+	}))
+
 	logger.PrintInfo("gateway initialized", map[string]string{
 		"proxy_to": cfg.Services.MoodTracker.URL,
 	})
 
 	return &application{
-		config:    *cfg,
-		Logger:    logger,
-		moodProxy: moodProxy,
+		config:     *cfg,
+		Logger:     logger,
+		moodProxy:  moodProxy,
+		errHandler: errHandler,
+		middleware: middleware,
 	}
 }

@@ -6,3 +6,8 @@ services:
   mood_tracker:
     url: "http://localhost:4000"
     timeout: 5s
+
+limiter:
+  rps: 2
+  burst: 4
+  enabled: true
