@@ -19,6 +19,12 @@ type Config struct {
 			Timeout time.Duration `yaml:"timeout"`
 		} `yaml:"mood_tracker"`
 	} `yaml:"services"`
+
+	Limiter struct {
+		RPS     float64 `yaml:"rps"`
+		Burst   int     `yaml:"burst"`
+		Enabled bool    `yaml:"enabled"`
+	} `yaml:"limiter"`
 }
 
 func Load() (*Config, error) {

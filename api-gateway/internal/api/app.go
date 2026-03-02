@@ -1,23 +1,30 @@
 package api
 
 import (
-	"fmt"
 	"gateway/internal/config"
 	"gateway/internal/jsonlog"
 	"gateway/internal/proxy"
 	"gateway/internal/utils/errors"
 	"net/http"
 	"os"
+	"sync"
 )
 
-func New() {
+type application struct {
+	config    config.Config
+	Logger    jsonlog.Logger
+	wg        sync.WaitGroup
+	moodProxy http.Handler
+}
+
+func NewApp() *application {
 	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
 	errHandler := errors.NewErrorHandler(logger)
-
 	cfg, err := config.Load()
+
 	if err != nil {
 		logger.PrintError(err, nil)
-		return
+		return nil
 	}
 
 	moodProxy, err := proxy.New(proxy.Service{
@@ -28,15 +35,16 @@ func New() {
 
 	if err != nil {
 		logger.PrintError(err, nil)
+		return nil
 	}
 
-	router := http.NewServeMux()
-	router.Handle("/mood/", moodProxy)
+	logger.PrintInfo("gateway initialized", map[string]string{
+		"proxy_to": cfg.Services.MoodTracker.URL,
+	})
 
-	server := &http.Server{
-		Addr:    fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port),
-		Handler: router,
+	return &application{
+		config:    *cfg,
+		Logger:    logger,
+		moodProxy: moodProxy,
 	}
-
-	server.ListenAndServe()
 }
